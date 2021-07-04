@@ -1,0 +1,673 @@
+---
+title: "Hotel Review's Analysis"
+author: "Tommaso Comelli"
+output:
+  ioslides_presentation:
+    css: style.css
+    incremental: yes
+editor_options: 
+  chunk_output_type: inline
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(cache = TRUE, message = FALSE, warning = FALSE)
+```
+
+## Introduzione al progetto 
+Il progetto che ho deciso di implementare ha lo scopo generale di analizzare le recensioni dei clienti in determinati hotel. Tutti noi almeno una volta abbiamo recensito, positivamente o negativamente, un hotel perchè eravamo stati colpiti da determinate peculiartà della struttura, ma sopratutto ognuno di noi prima di prenotare un qualsiasi pernottamento scorre minuziosamente tutte le recensioni per capire se effettuare o meno la prenotazione. Ma vi siete mai chiesti cos'hanno in comune tutte le recensioni? Io si è lo scopo effettivo del mio progetto è quello di risolvere questo dubbio
+
+## Perchè questo argomento 
+Ho scelto questo argomento poichè penso che le recensioni e in particolare quelle degli hotel siano qualcosa con cui tutti abbiamo avuto a che fare alemno una volta nella vita. Inoltre sono fondamentali per le diverse scelte. Inoltre risulta partecchio interessante capire quali sono le parole usate e se vi sono relazioni con altre variabili.
+
+## Introduzione al dataset utilizzato 
+Il dataset da me utilizzato per il progetto è stato reperito su kaggle.com e si chiama hotel_reviews.csv. Il daset, in particolare, contiene 515k recensioni di clienti riguardanti 1493 hotel di lusso in tutt'europa. Le recensioni sono presenti sul sito booking.it.Il dataset contiene 17 campi di seguito sono presenti i più significativi e i più utili alla mia analisi.
+
+* Contenuto del dataset:
+  + _Hotel_Name_: identifica il nome dell'hotel 
+  + _Hotel_Address_: specifica l'indirizzo dell'hotel (useremo solo il paese)
+  + _Review_Date_: data della recensione 
+  + _Reviewer_Nationality_: Nazionalità del cliente che ha recensito l'hotel
+  + _Negative_Review_: recensione negativa 
+  + _Positive_Review_: recensione positiva
+  
+       *n.b ogni cliente lascia una recensione positiva e una negativa, se non vuole lasciarne una negativa nel dataset troveremo 'No Negative'e viceversa*
+  + _ReviewTotalNegativeWordCounts_: numero totale di parole negative usate
+  + _ReviewTotalPositiveWordCounts_:  numero totale di parole postive usate
+  + _Reviewer_Score_:punteggio assegnato dal cliente 
+  + _TotalNumberof_Reviews_: Numero totale delle review dell'hotel 
+  + _lat_:latitudine dell'hotel 
+  + _long_: longitudine dell'hotel
+  
+  
+
+## Le domande a cui vorrei rispondere 
+Con un dataset così ricco di informazioni le domande sorte per capire le diverse relazioni fra le recensioni sono molte, queste sono le più importanti che approfondirò nel corso del mio progetto
+
++ Quale è l'hotel di lusso migliore d'Europa?
++ Quale è l'hotel di lusso peggiore? 
++ C'è una qualche correlazione fra la nazionalità del cliente e il punteggio assegnato all'hotel?
++ Quali sono le parole che i clienti usano più di frequente per le recensioni negative e positve?
++ Quale è il numero medio di parole di una recensione (postiva e negativa)?
+
+
+
+## Analisi 
+La prima cosa che dobbiamo fare è importare il dataset e "sistemarlo" visto che contiene campi per noi inutili e come si può vedere contiene dati grezzi:
+
+```{r}
+library(readr)
+reviews<-read.csv("Hotel_Reviews.csv")
+hreviews<-data.frame(reviews)
+head(hreviews)
+
+```
+Innanzi tutto togliamo dal dataset le colonne che che non ci servono, per questa prima analisi globale, non useremo il testo delle recensioni positive e negative, ci serviranno in seguito per un'analisi più dettagliata
+
+```{r}
+library(tidyverse)
+library(dplyr)
+hreviews2<-hreviews %>%
+          select(Hotel_Address, 
+                 Additional_Number_of_Scoring, 
+                 Average_Score, 
+                 Hotel_Name,
+                 Total_Number_of_Reviews,
+                 lat,
+                 lng)
+```
+
+
+## Uno sguardo alla distribuzione degli hotel 
+
+```{r}
+library(tidyverse)
+library(dplyr)
+  latandlong<-hreviews%>%
+                group_by(Hotel_Address,
+                         Hotel_Name,Average_Score,
+                         Total_Number_of_Reviews,
+                         lat,
+                         lng)%>%
+                summarize(latitude=mean(lat))
+  
+
+```
+
+
+```{r}
+values<- c(208,162,104,96,282)
+region<-c("Spain","Italy","Netherlands","Austria","UK")
+data<-data.frame(region, values)
+
+
+
+library(ggplot2)
+library(tidyverse) 
+
+mapdata<-map_data("world")
+mapdata<-left_join(mapdata,data, by="region")
+mapdata1<-mapdata %>% filter(region=="Austria" |
+                               region=="Belgium" |
+                               region=="Bulgaria" |
+                               region=="Croatia" |
+                               region=="Cyprus" |
+                               region=="Czech Republic" |
+                               region=="Denmark" |
+                               region=="Finland" |
+                               region=="Estonia" |
+                               region=="France" |
+                               region=="Germany" |
+                               region=="Greece" |
+                               region=="Hungary" |
+                               region=="Ireland" |
+                               region=="Italy" |
+                               region=="Latvia" |
+                               region=="Lithuania" |
+                               region=="Luxembourg" |
+                               region=="Malta" |
+                               region=="UK" |
+                               region=="Netherlands" |
+                               region=="Poland" |
+                               region=="Portugal" |
+                               region=="Romania" |
+                               region=="Slovakia" |
+                               region=="Slovenia" |
+                               region=="Spain" |
+                               region=="Sweden")
+view(mapdata1)
+map1<-ggplot(mapdata1, aes(x=long,y=lat, group=group))+
+  geom_polygon(aes(fill=values),color="black")
+map1
+
+```
+
+
+Come possiamo notare dal grafico, gli hotel sono posizionati in sei delle città europee più famose ovvero:
+
+  * Barcellona 
+  * Milano 
+  * Amsterdam
+  * Vienna 
+  * Londra
+  
+```{r}
+  library(plotly)
+
+values<- c(208,162,104,96,282)
+labels<-c("Spain","Italy","Paesi Bassi","Austria","England")
+
+fig <- plot_ly(type='pie', labels=labels, values=values, 
+               textinfo='label+percent',
+               insidetextorientation='radial')
+fig
+```
+  
+  Il grafico sopra raffigurato sopra non ci permette di comprendere a fondo la distribuzione degli hotel, per questo motivo di seguito svilupperò delle mappe per zona:
+  
+### Barcellona
+```{r}
+
+hotelSpagna<-latandlong%>%
+                filter((between(lat,41,41.5)&&(between(lng,1.5,2.6))))
+
+
+hotelSpagnasum<-hotelSpagna%>%
+  group_by(Hotel_Address,
+           Hotel_Name,
+           Average_Score,
+           Total_Number_of_Reviews,
+           lat,
+           lng)%>%
+          summarize(latitude=mean(lat))
+
+
+library(leaflet)
+
+leaflet(data = hotelSpagnasum) %>% addTiles() %>%
+  addMarkers(~lng, ~lat, popup = ~as.character(Hotel_Name))
+
+```
+### Milano 
+```{r}
+hotelItalia<-latandlong%>%
+                filter((between(lat,45,46)&&(between(lng,8.7,9.4))))
+
+
+library(leaflet)
+
+leaflet(data = hotelItalia) %>% addTiles() %>%
+  addMarkers(~lng, ~lat, popup = ~as.character(Hotel_Name))
+
+```
+  
+  
+### Amsterdam
+```{r}
+hotelPB<-latandlong%>%
+                filter((between(lat,52,52.4)&&(between(lng,4.5,9.4))))
+
+library(leaflet)
+
+leaflet(data = hotelPB) %>% addTiles() %>%
+  addMarkers(~lng, ~lat, popup = ~as.character(Hotel_Name))
+
+
+```
+
+
+### Vienna
+```{r}
+hotelAu<-latandlong%>%
+                filter((between(lat,48.20,48.5)&&(between(lng,16,17))))
+
+library(leaflet)
+
+leaflet(data = hotelAu) %>% addTiles() %>%
+  addMarkers(~lng, ~lat, popup = ~as.character(Hotel_Name))
+
+
+```
+
+### Londra
+```{r}
+hotelUk<-latandlong%>%
+                filter((between(lat,51.50,51.55)&&(between(lng,-1.14,0.46))))
+
+library(leaflet)
+
+leaflet(data = hotelUk) %>% addTiles() %>%
+  addMarkers(~lng, ~lat, popup = ~as.character(Hotel_Name))
+```
+
+
+## Classifiche 
+Ora che abbiamo riordinato i nostri dati e li abbiamo visualizzati,  siamo pronti per iniziare ad analizzarli.
+Per prima cosa, al fine di ottenere dei dati globali raggruppiamo i dati per hotel, e li ordinamo per la media delle valutazioni 
+
+```{r}
+hreviews3<- hreviews2 %>%
+            group_by(Hotel_Name,Hotel_Address,Total_Number_of_Reviews)%>%
+            summarize(mean_sc=mean(Average_Score))
+```
+
+### Classifica globale
+Come analisi preliminare ho deciso di calcolare la classifica globale degli hotel. Da questa classifica, di cui visualizziamo solo il "podio", possiamo vedere l'hotel migliore e quello peggiore 
+
+#### Best
+```{r}
+
+ classifica1 <- arrange(hreviews3,-mean_sc)
+
+ classifica1%>%
+  head(3)
+```
+#### Worst 
+
+```{r}
+"Worst"
+ classifica2<- arrange(hreviews3,desc(-mean_sc))
+ classifica2%>%
+  head(3)
+   
+```
+
+Questa prima classifica però non può essere considerata come totalmente corretta, poichè ovviamente il numero di recensioni che ha l'hotel incide molto sul punteggio e nella classifica sopradescritta non viene preso in considerazione, per questo motivo calcoliamo la media ponderata dei dati sulla base della numerosità delle recensioni
+
+### Classifica ponderata 
+```{r}
+classpond<-
+  mutate(hreviews3, meanpond=((mean_sc*Total_Number_of_Reviews)/516000))
+```
+#### Best
+```{r}
+
+  newclass<- arrange(classpond,-meanpond)
+
+ newclass%>%
+  head(3)
+ 
+```
+#### Worst
+```{r}
+ newclass2<- arrange(classpond,desc(-meanpond))
+ newclass2%>%
+  head(3)
+
+```
+
+## Classifica per zona
+Di seguito elenco in ordine i migliori hotel per zona 
+
+### Podio Spagna
+
+#### Best
+```{r}
+
+classSp<-
+  mutate(hotelSpagna, meanpond=((Average_Score*Total_Number_of_Reviews)/516000))
+
+  newclasssp<- arrange(classSp,-meanpond)
+
+ newclass%>%
+  head(3)
+```
+#### Worst
+```{r}
+ newclassp2<- arrange(classSp,desc(-meanpond))
+ newclassp2%>%
+  head(3)
+```
+
+### Podio Italia
+
+#### Best
+```{r}
+
+classIt<-
+  mutate(hotelItalia, meanpond=((Average_Score*Total_Number_of_Reviews)/516000))
+
+  newclassit<- arrange(classIt,-meanpond)
+
+ newclass%>%
+  head(3)
+```
+#### Worst
+```{r}
+ newclasit2<- arrange(classIt,desc(-meanpond))
+ newclasit2%>%
+  head(3)
+```
+
+### Podio Austria
+
+#### Best
+```{r}
+classAu<-
+  mutate(hotelAu, meanpond=((Average_Score*Total_Number_of_Reviews)/516000))
+  newclassau<- arrange(classAu,-meanpond)
+
+ newclassau%>%
+  head(3)
+```
+#### Worst
+```{r}
+ newclasau2<- arrange(classAu,desc(-meanpond))
+ newclasau2%>%
+  head(3)
+```
+
+### Podio Paesi Bassi
+#### Best
+```{r}
+
+classPb<-
+  mutate(hotelPB, meanpond=((Average_Score*Total_Number_of_Reviews)/516000))
+  newclasspb<- arrange(classPb,-meanpond)
+
+ newclasspb%>%
+  head(3)
+```
+#### Worst
+```{r}
+ newclasspb2<- arrange(classPb,desc(-meanpond))
+ newclasspb2%>%
+  head(3)
+```
+
+### Podio Regno Unito
+
+#### Best
+```{r}
+classUk<-
+  mutate(hotelUk, meanpond=((Average_Score*Total_Number_of_Reviews)/516000))
+  newclassuk<- arrange(classUk,-meanpond)
+
+ newclassuk%>%
+  head(3)
+```
+#### Worst
+```{r}
+ newclassuk2<- arrange(classUk,desc(-meanpond))
+ newclassuk2%>%
+  head(3)
+```
+## Uno sguardo ai reviewrs
+Risuta intressante anche capire la provenineza dei recensitori 
+```{r}
+prov<-hreviews%>%select(Reviewer_Nationality)
+frequency_prov = prov %>% count(Reviewer_Nationality) %>% arrange(desc(n))
+
+
+library(plotly)
+library(dplyr)
+
+fig <- frequency_prov %>% plot_ly(labels = ~Reviewer_Nationality, values = ~n)
+fig <- fig %>% add_pie(hole = 0.6)
+fig <- fig %>% layout(title = "Donut charts using Plotly",  showlegend = F,
+                      xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
+                      yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE))
+
+fig
+```
+
+
+## Prima Correlazione 
+Risulta interessante capire se è presente una qualche correlzione fra le variabili presenti nel dataset
+
+### Correlazione Spagna
+ 
+```{r}
+hotelSpagna2<-hreviews%>%
+  select(Hotel_Name,Reviewer_Nationality,Reviewer_Score,lat,lng
+)
+hotelSpagna3<-hotelSpagna2%>% 
+  filter((between(lat,41,41.5)))
+
+
+prova<- filter(hotelSpagna3,Hotel_Name=="Sansi Diputacio")
+ggplot(prova, aes(Reviewer_Score , Reviewer_Nationality)) + geom_point()
+
+# linear model 
+mod1 = lm(Reviewer_Score~Reviewer_Nationality, data = prova)
+
+mod1$coefficients
+
+ggplot(prova,aes(Reviewer_Score , Reviewer_Nationality)) + 
+  geom_point() + 
+  geom_abline(intercept = mod1$coefficients[1], 
+              slope = mod1$coefficients[2], 
+              color = "red")
+```
+
+Una delle domande a cui volevo rispondere riguardava la presenza di correlazione fra la nazionalità del reviewer e il punteggio assegnato.
+Chiaramente questa correlazione aveva lo scopo di misurare una sorta di grado di "patriottismo" infatti l'analisi è stata svolta per zona. Come si può evincere dai grafici sopra descrittI non è presente una correlazione fra queste due variabili (Nella zona da noi scelta). Proviamo ora, per essere sicuri, ad analizzare un'altra zona
+
+### Correlazione Italia
+```{r}
+hotelItalia2<-hreviews%>%
+  select(Hotel_Name,Reviewer_Nationality,Reviewer_Score,lat,lng
+)
+hotelItalia3<-hotelItalia2%>% 
+  filter((between(lat,45,46)))
+
+
+prova<- filter(hotelItalia3,Hotel_Name=="Hotel VIU Milan")
+ggplot(prova, aes(Reviewer_Score , Reviewer_Nationality)) + geom_point()
+
+# linear model 
+mod1 = lm(Reviewer_Score~Reviewer_Nationality, data = prova)
+
+
+mod1$coefficients
+
+ggplot(prova,aes(Reviewer_Score , Reviewer_Nationality)) + 
+  geom_point() + 
+  geom_abline(intercept = mod1$coefficients[1], 
+              slope = mod1$coefficients[2], 
+              color = "red")
+```
+Come si può vedere abbiamo ottenuto la conferma che anche in questo caso non è presente una correlazione fra le due variabili. 
+
+## Seconda Correlazione 
+
+Avendo un dataset con molte variabili possiamo però provare a cercare un'altra correlazione, per esempio fra il numero di parole della recensione e il voto attribuito, per comodità di gestione del dataset ci concentreremo su un hotel. 
+
+```{r}
+hotelSpagna2<-hreviews%>%
+  select(Hotel_Name,Review_Total_Positive_Word_Counts,Reviewer_Score,lat,lng)
+
+hotelSpagna3<-hotelSpagna2%>% 
+  filter((between(lat,41,41.5)))
+
+
+prova<- filter(hotelSpagna3,Hotel_Name=="Sansi Diputacio")
+ggplot(prova, aes( Review_Total_Positive_Word_Counts, Reviewer_Score)) + geom_point()
+
+# linear model 
+mod1 = lm(Review_Total_Positive_Word_Counts ~ Reviewer_Score, data = prova)
+
+
+mod1$coefficients
+
+ggplot(prova,aes(Review_Total_Positive_Word_Counts, Reviewer_Score)) + 
+  geom_point() + 
+  geom_abline(intercept = mod1$coefficients[1], 
+              slope = mod1$coefficients[2], 
+              color = "red")
+
+```
+Anche qui non sembrerebbe esserci una correlazione ma per esserne sicuri calcoliamo l'indice di correlazione di pearson 
+```{r}
+(r = cor(hotelSpagna3$Review_Total_Positive_Word_Counts, hotelSpagna3$Reviewer_Score))
+r^2
+```
+
+Come si vede dall'indice di correlazione che si attesta a 0, non c'è correlazione 
+
+Ma è effettivamente presente un qualche tipo di correlazione? Controlliamo
+```{r}
+library(ggcorrplot)
+library(corrplot)
+
+hreviewscorr<- hreviews%>% select(Reviewer_Score,Average_Score, Total_Number_of_Reviews, Review_Total_Positive_Word_Counts,Review_Total_Negative_Word_Counts)
+colnames(hreviewscorr)<- c("Punteggio","Media","NTotRev", "NParoleRp", "NParoleRn")
+
+data(hreviewscorr)
+corr <- round(cor(hreviewscorr), 1)
+
+corrplot(corr, method="shade")
+
+```
+
+## Testo 
+Conclusa l'analisi numerica vorrei ora soffermarmi sull'analisi dei testi delle recensioni per ottenere informazioni utili 
+Nel nostro dataset infatti sono presenti i testi e delle informazioni sulle recensioni positive e negative. Creiamo quindi un dataset che contenga solo queste informazioni(le analisi fatte di seguito non prenderanno in considerazione le zone ma solo le recensioni)
+
+```{r}
+recensioni<- hreviews %>% select(Positive_Review, Review_Total_Positive_Word_Counts, Negative_Review, Review_Total_Negative_Word_Counts)
+```
+
+##Analisi preliminare
+Come prima analisi ho deciso di calcolare le informazioni principali sul numero delle parole utilizzate per le recensioni negative  e per qulle positive e le rappresentiamo in un boxplot
+
+```{r}
+par(bty = "l")
+boxplot(recensioni$Review_Total_Negative_Word_Counts)
+
+par(bty = "l")
+boxplot(recensioni$Review_Total_Positive_Word_Counts)
+
+```
+Come possiamo vedere i boxplot in questo caso sono poco informativi poichè non è presente un andamento costante delle recensioni ma sono presenti parecchi outlayers, stampiamo quindi di seguito i dati riassuntivi 
+```{r}
+summary(recensioni$Review_Total_Positive_Word_Counts)
+summary(recensioni$Review_Total_Negative_Word_Counts)
+```
+
+## Analisi dettagliata 
+
+## Positive Reviews
+Ora che abbia svolto un'analisi preliminare sui dati proviamo ad effettuare un'analisi dettagliata sul testo delle recensioni. 
+Come prima cosa tokenizziamo le recensioni ovvero dividiamo le diverse recensioni in ogni parola che le compongono. 
+
+```{r}
+library(tidyverse)
+library(tidytext)
+library(tm)
+library(stopwords)
+text_df <- data_frame(line = 1:515738, text = recensioni$Positive_Review)
+rus_stopwords = data.frame(word = stopwords("ru"))
+
+
+new_df <- text_df %>% unnest_tokens(word, text) %>% anti_join(rus_stopwords)
+new_df
+
+
+```
+La tabella ottenuta è molto grande infatti contiene ben 8 milioni di parole, e diciamo che è poco rappresentativa. Cerchiamo di renderla tale, innanzitutto eliminando le stopwords e altre parole inutili per della nostra analisi.
+```{r}
+new_df1<-new_df %>%
+  filter(!(word %in% stopwords("english")))
+```
+
+Di seguito invece creiamo una tabella delle frequenze, sommando le occorenze delle parole e ottenendo una tabella di frequenza
+```{r}
+frequency_dataframe = new_df1 %>% count(word) %>% arrange(desc(n))
+frequency_dataframe
+```
+Ora abbiamo ottenuto una tabella che contiene le parole usate in ordine di frequenza, visulizziamo le più utilizzate per le recensioni positive
+```{r}
+short_dataframe = head(frequency_dataframe, 25)
+ggplot(short_dataframe, aes(x = word, y = n, fill = word),ylab="") +theme(axis.text.x = element_text(angle = 90))+ geom_col() +ylab("Count")
+```
+
+Cerchiamo ora di visualizzare meglio le parole usate
+
+```{r}
+library("tm")
+library("SnowballC")
+library("wordcloud")
+library("RColorBrewer")
+
+wordcloud(words = frequency_dataframe$word, freq = frequency_dataframe$n, min.freq = 1,
+          max.words=200, random.order=FALSE, rot.per=0.35, 
+          colors=brewer.pal(8, "Dark2"))
+
+
+```
+
+Di conseguenza quindi sembra che le parole più utilizzate per recensire positivamente un hotel siano queste
+
+## Negative Reviews
+```{r}
+library(tidyverse)
+library(tidytext)
+library(tm)
+library(stopwords)
+text_df <- data_frame(line = 1:515738, text = recensioni$Negative_Review)
+rus_stopwords = data.frame(word = stopwords("ru"))
+
+
+new_df <- text_df %>% unnest_tokens(word, text) %>% anti_join(rus_stopwords)
+new_df
+
+
+```
+La tabella ottenuta è molto grande infatti contiene ben 8 milioni di parole, e diciamo che è poco rappresentativa. Cerchiamo di renderla tale, innanzitutto eliminando le stopwords e altre parole inutili per della nostra analisi.
+```{r}
+new_df1<-new_df %>%
+  filter(!(word %in% stopwords("english")))
+```
+
+Di seguito invece creiamo una tabella delle frequenze, sommando le occorenze delle parole e ottenendo una tabella di frequenza
+```{r}
+frequencyn_dataframe = new_df1 %>% count(word) %>% arrange(desc(n))
+frequencyn_dataframe
+```
+Ora abbiamo ottenuto una tabella che contiene le parole usate in ordine di frequenza, visulizziamo le più utilizzate per le recensioni positive
+```{r}
+short_dataframe = head(frequencyn_dataframe, 25)
+ggplot(short_dataframe, aes(x = word, y = n, fill = word),ylab="") +theme(axis.text.x = element_text(angle = 90))+ geom_col() +ylab("Count")
+```
+
+Cerchiamo ora di visualizzare meglio le parole usate
+
+```{r}
+library("tm")
+library("SnowballC")
+library("wordcloud")
+library("RColorBrewer")
+
+wordcloud(words = frequencyn_dataframe$word, freq = frequency_dataframe$n, min.freq = 1,
+          max.words=200, random.order=FALSE, rot.per=0.35, 
+          colors=brewer.pal(8, "Dark2"))
+```
+
+
+
+## Conclusioni 
+
+In conclusione possiamo dire di essere riusciti a rispondere alle doamnde prefissate e abbiamo ottenuto le seguenti risposte
+
++ Quale è l'hotel di lusso migliore d'Europa?
+```{r}
+classpond%>%head(1)
+```
++ Quale è l'hotel di lusso peggiore? 
+```{r}
+newclass%>%head(1)
+```
++ C'è una qualche correlazione fra la nazionalità del cliente e il punteggio assegnato all'hotel?
+
+No, non è presente alcuna correlazione, in particolare come possiamo vedere nella matrice non sono presenti forti correlazioni nel dataset 
++ Quali sono le parole che i clienti usano più di frequente per le recensioni negative e
+positve?
+```{r}
+frequencyn_dataframe%>%head(5)
+frequency_dataframe%>%head(5)
+```
++ Quale è il numero medio di parole di una recensione (postiva e negativa)?
+```{r}
+summary(recensioni$Review_Total_Positive_Word_Counts)
+summary(recensioni$Review_Total_Negative_Word_Counts)
+```
