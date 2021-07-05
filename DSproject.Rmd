@@ -2,10 +2,12 @@
 title: "Hotel Review's Analysis"
 author: "Tommaso Comelli"
 output:
+  slidy_presentation:
+    incremental: yes
   ioslides_presentation:
     css: style.css
     incremental: yes
-editor_options: 
+editor_options:
   chunk_output_type: inline
 ---
 
@@ -95,7 +97,7 @@ library(dplyr)
 
 
 ```{r}
-values<- c(208,162,104,96,282)
+values<- c(348,262,214,236,422)
 region<-c("Spain","Italy","Netherlands","Austria","UK")
 data<-data.frame(region, values)
 
@@ -134,10 +136,18 @@ mapdata1<-mapdata %>% filter(region=="Austria" |
                                region=="Slovenia" |
                                region=="Spain" |
                                region=="Sweden")
-view(mapdata1)
-map1<-ggplot(mapdata1, aes(x=long,y=lat, group=group))+
+
+ggplot(mapdata1, aes(x=long,y=lat, group=group))+
   geom_polygon(aes(fill=values),color="black")
-map1
+```
+
+
+```{r}
+values<- c(348,262,214,236,422)
+region<-c("Spain","Italy","Netherlands","Austria","UK")
+data<-data.frame(region, values)
+
+plot_ly(type='pie', labels=region, values=values, textinfo='percent', insidetextorientation='radial')
 
 ```
 
@@ -149,18 +159,6 @@ Come possiamo notare dal grafico, gli hotel sono posizionati in sei delle città
   * Amsterdam
   * Vienna 
   * Londra
-  
-```{r}
-  library(plotly)
-
-values<- c(208,162,104,96,282)
-labels<-c("Spain","Italy","Paesi Bassi","Austria","England")
-
-fig <- plot_ly(type='pie', labels=labels, values=values, 
-               textinfo='label+percent',
-               insidetextorientation='radial')
-fig
-```
   
   Il grafico sopra raffigurato sopra non ci permette di comprendere a fondo la distribuzione degli hotel, per questo motivo di seguito svilupperò delle mappe per zona:
   
