@@ -5,8 +5,8 @@ date: "06/07/2021"
 
 output: 
  revealjs::revealjs_presentation:
-    center: true
     transition: zoom
+    center: true
     controls: true
     controlsTutorial: true
     controlsBackArrows: 'faded'
@@ -16,6 +16,8 @@ css: styles.css
 
  
 ---
+
+<style> section { margin: auto; } </style>
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE)
@@ -35,9 +37,10 @@ library(wordcloud)
 library(RColorBrewer)
 ```
 
+
 <section>
 
-
+## Introduzione
 
 ## Why this project
 
@@ -59,7 +62,8 @@ reviews<-read.csv("Hotel_Reviews.csv")
 hreviews<-data.frame(reviews)
 
 ```
-<div style="font-size: 25px; text-align:left; font-family="Helvetica">
+<div style="font-size: 25px; text-align:left; font-family='Helvetica';">
+
   + _Hotel_Name_: identifica il nome dell'hotel 
   + _Hotel_Address_: specifica l'indirizzo dell'hotel (useremo solo il paese)
   + _Review_Date_: data della recensione 
@@ -72,11 +76,13 @@ hreviews<-data.frame(reviews)
   + _TotalNumberof_Reviews_: Numero totale delle review dell'hotel 
   + _lat_:latitudine dell'hotel 
   + _long_: longitudine dell'hotel
+  
 </div>
 
 ## Question to answer
 
 <div style="font-size: 25px; text-align:left;">
+
 With a dataset so rich in information, many questions have arisen to understand the different relationships between reviews, these are the most important that I will deepen in the course of my project.
 
 + Which is the best luxury hotel in Europe?
@@ -145,24 +151,28 @@ ggplot(mapdata1, aes(x=long,y=lat, group=group))+
 
 ```
 
-##
 
+## View
 
+<div style="margin-left:100px;">
 
 ```{r}
 values<- c(348,262,214,236,422)
 region<-c("Spain","Italy","Netherlands","Austria","UK")
-p<-plot_ly(type='pie', labels=region, values=values, textinfo='percent', insidetextorientation='radial')
+plot_ly(type='pie', labels=region, values=values, textinfo='percent', insidetextorientation='radial')
 
-
-p
 ```
+
+</div>
+
 
 </section>
 ##
-
 <section style="background:none; border:none; box-shadow:none; ">
-## Altro
+
+## Distribution
+
+<div style="margin-left:100px;">
 
 ```{r}
 .groups = 'drop'
@@ -178,6 +188,9 @@ p
 
 ## Spagna
 
+<div style="margin-left:100px;">
+
+
 ```{r}
 hotelSpagna<-latandlong%>%
                 filter((between(lat,41,41.5)))
@@ -186,8 +199,11 @@ hotelSpagna<-latandlong%>%
 p<-leaflet(data = hotelSpagna) %>% addTiles() %>% addMarkers(~lng, ~lat, popup = ~as.character(Hotel_Name))
 p
 ```
+</div>
 
 ## Italia
+<div style="margin-left:100px;">
+
 ```{r}
 hotelItalia<-latandlong%>%
                 filter((between(lat,45,46)))
@@ -197,6 +213,10 @@ leaflet(data = hotelItalia) %>% addTiles() %>%
   addMarkers(~lng, ~lat, popup = ~as.character(Hotel_Name))
 ```
 
+
+
+
+</div>
 
 ```{r}
 hreviews3<- hreviews2 %>%
@@ -224,7 +244,7 @@ hreviews3<- hreviews2 %>%
   po1<-data.frame(podio1$Hotel_Name,podio1$mean_sc)
 
   ggplot(po1, aes(x=podio1$Hotel_Name, y=podio1$mean_sc)) + 
-  geom_bar(stat = "identity", width=0.5, fill="light blue") +
+  geom_bar(stat = "identity", width=0.5, fill="light green") +
     xlab("Hotel Name")+
     ylab("Average Score")+
     coord_flip()+
@@ -241,7 +261,7 @@ hreviews3<- hreviews2 %>%
  po2<-data.frame(podio2$Hotel_Name,podio2$mean_sc)
 
   ggplot(po2, aes(x=podio2$Hotel_Name, y=podio2$mean_sc)) + 
-  geom_bar(stat = "identity", width=0.5, fill="light green") +
+  geom_bar(stat = "identity", width=0.5, fill="#f7595c") +
     xlab("Hotel Name")+
     ylab("Average Score")+
     coord_flip()+
@@ -285,7 +305,7 @@ classifica3<- arrange(classpond,-meanpond)
   po4<-data.frame(podio4$Hotel_Name,podio4$meanpond)
 
   ggplot(po4, aes(x=podio4$Hotel_Name, y=podio4$meanpond)) + 
-  geom_bar(stat = "identity", width=0.5, fill=" dark green") +
+  geom_bar(stat = "identity", width=0.5, fill="#f7595c") +
     xlab("Hotel Name")+
     ylab("Average Score")+
     coord_flip()+
@@ -308,9 +328,9 @@ classSp<-
   podio<-newclasssp%>%head(3)
   
   po<-data.frame(podio$Hotel_Name,podio$meanpond)
-  cc<-c("red", "yellow", "black")
+  col<-c("#ffc400","#c60b1e","#c60b1e")
   ggplot(po, aes(x=podio$Hotel_Name, y=podio$meanpond)) + 
-  geom_bar(stat = "identity", width=0.5, fill="#E30B5C") +
+  geom_bar(stat = "identity", width=0.5, fill=col) +
     xlab("Hotel Name")+
     ylab("Average Score")+
     coord_flip()+
@@ -330,12 +350,12 @@ classIt<-
   newclassit<- arrange(classIt,-meanpond)
 
  podio5<-newclassit%>%head(3)
+ col<-c("white","red","green")
  po5<-data.frame(podio5$Hotel_Name,podio5$meanpond)
   ggplot(po5, aes(x=podio5$Hotel_Name, y=podio5$meanpond)) + 
-  geom_bar(stat = "identity", width=0.5, fill="#CC8899") +
+  geom_bar(stat = "identity", width=0.5, fill=col) +
     xlab("Hotel Name")+
     ylab("Average Score")+
-    coord_flip()+
     theme(legend.position="none")
 ```
 </section>
@@ -344,6 +364,9 @@ classIt<-
 <section>
 
 ## An eye on the reviewr's
+
+<div style="margin-left:100px;">
+
 ```{r}
 prov<-hreviews%>%select(Reviewer_Nationality)
 frequency_prov = prov %>% count(Reviewer_Nationality) %>% arrange(desc(n))
@@ -356,7 +379,7 @@ fig <- fig %>% layout(title = "Donut charts using Plotly",  showlegend = F,
 
 fig
 ```
-
+</div>
 </section>
 ## 
 
