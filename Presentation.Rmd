@@ -1,0 +1,440 @@
+---
+title: "Hotel Review's Analysis"
+author: "Tommaso Comelli"
+date: "06/07/2021"
+
+ioslides_presentation:
+  highlight: pygments
+slidy_presentation:
+  highlight: pygments
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+
+library(knitr)
+library(readr)
+library(plotly)
+library(ggplot2)
+library(tidyverse)
+library(leaflet)
+library(tidytext)
+library(corrplot)
+library(tm)
+library(stopwords)
+library(SnowballC)
+library(wordcloud)
+library(RColorBrewer)
+```
+## Why this project
+The project I've decided to implent has the purpose to analyze some hotels client's reviews.
+All of us have at least once reviewed, positively or negatively, a hotel because we were struck by certain peculiarities of the structure.
+
+Above all, however, before booking any hotel each of us read all the reviews in detail to understand whether or not to book. But have you ever wondered what all reviews have in common?
+
+I have, and I would like to solve this doubt.
+
+## The dataset
+I found the daset I used on kaggle.com and is named "hotel_reviews.csv". The daset contains 512k reviews of some clients reguarding about 1500 luxury hotels all over Europe. The dataset is composed by 17 fields which are shown below
+
+```{r}
+reviews<-read.csv("Hotel_Reviews.csv")
+hreviews<-data.frame(reviews)
+
+```
+
+  + _Hotel_Name_: name of the hotel
+  + _Hotel_Address_: address of the hotel 
+  + _Reviewer_Nationality_: nationality of the reviewer
+  + _Negative_Review_: text of negative rev.
+  + _Positive_Review_: text of positive rev.
+  + _ReviewTotalNegativeWordCounts_: total num. of worlds in PR
+  + _ReviewTotalPositiveWordCounts_: total num. of worlds in NR
+  + _Reviewer_Score_: Score given from the rev
+  + _lat_:latitude
+  + _long_: longitude
+  
+
+## Question to answer
+
+With a dataset so rich in information, many questions have arisen to understand the different relationships between reviews, these are the most important that I will deepen in the course of my project.
+
++ Which is the best luxury hotel in Europe?
++ Which is the worst luxury hotel?
++ Is there any correlation between the client's nationality and the rating assigned to the hotel?
++ What are the words customers use most frequently for negative and positive reviews?
++ What is the average number of words of a review (positive and negative)?
+
+## An eye on the daset 
+
+```{r}
+hreviews2<-hreviews %>%
+          select(Hotel_Address, 
+                 Additional_Number_of_Scoring, 
+                 Average_Score, 
+                 Hotel_Name,
+                 Total_Number_of_Reviews,
+                 lat,
+                 lng)
+
+values<- c(348,262,214,236,422)
+region<-c("Spain","Italy","Netherlands","Austria","UK")
+data<-data.frame(region, values)
+
+mapdata<-map_data("world")
+mapdata<-left_join(mapdata,data, by="region")
+mapdata1<-mapdata %>% filter(region=="Austria" |
+                               region=="Belgium" |
+                               region=="Bulgaria" |
+                               region=="Croatia" |
+                               region=="Cyprus" |
+                               region=="Czech Republic" |
+                               region=="Denmark" |
+                               region=="Finland" |
+                               region=="Estonia" |
+                               region=="France" |
+                               region=="Germany" |
+                               region=="Greece" |
+                               region=="Hungary" |
+                               region=="Ireland" |
+                               region=="Italy" |
+                               region=="Latvia" |
+                               region=="Lithuania" |
+                               region=="Luxembourg" |
+                               region=="Malta" |
+                               region=="UK" |
+                               region=="Netherlands" |
+                               region=="Poland" |
+                               region=="Portugal" |
+                               region=="Romania" |
+                               region=="Slovakia" |
+                               region=="Slovenia" |
+                               region=="Spain" |
+                               region=="Sweden")
+
+ggplot(mapdata1, aes(x=long,y=lat, group=group))+
+  geom_polygon(aes(fill=values),color="black")
+```
+
+## View
+```{r}
+values<- c(348,262,214,236,422)
+region<-c("Spain","Italy","Netherlands","Austria","UK")
+mit<- plot_ly(type='pie', labels=region, values=values, textinfo='percent', insidetextorientation='radial')
+mit
+
+```
+## Altro
+
+```{r}
+.groups = 'drop'
+ latandlong<-hreviews%>%
+                group_by(Hotel_Address,
+                         Hotel_Name,Average_Score,
+                         Total_Number_of_Reviews,
+                         lat,
+                         lng)
+
+   latandlong<-  latandlong %>% summarize(latitude=mean(lat), .groups = 'drop')
+```
+
+### Spagna
+
+```{r}
+hotelSpagna<-latandlong%>%
+                filter((between(lat,41,41.5)))
+
+
+leaflet(data = hotelSpagna) %>% addTiles() %>%
+  addMarkers(~lng, ~lat, popup = ~as.character(Hotel_Name))
+```
+
+### Italia
+```{r}
+hotelItalia<-latandlong%>%
+                filter((between(lat,45,46)))
+
+
+leaflet(data = hotelItalia) %>% addTiles() %>%
+  addMarkers(~lng, ~lat, popup = ~as.character(Hotel_Name))
+```
+
+
+```{r}
+hreviews3<- hreviews2 %>%
+            group_by(Hotel_Address,
+                         Hotel_Name,Average_Score,
+                         Total_Number_of_Reviews,
+                         lat,
+                         lng)%>%
+            summarize(mean_sc=mean(Average_Score), .groups='drop')
+```
+
+### Classifica globale
+
+#### Best
+```{r}
+
+ classifica1 <- arrange(hreviews3,-mean_sc)
+
+ classifica1%>%
+  head(3)
+```
+#### Worst 
+
+```{r}
+"Worst"
+ classifica2<- arrange(hreviews3,desc(-mean_sc))
+ classifica2%>%
+  head(3)
+   
+```
+
+### Classifica ponderata 
+```{r}
+classpond<-
+  mutate(hreviews3, meanpond=((mean_sc*Total_Number_of_Reviews)/516000))
+```
+#### Best
+```{r}
+
+  newclass<- arrange(classpond,-meanpond)
+
+ newclass%>%
+  head(3)
+ 
+```
+#### Worst
+```{r}
+ newclass2<- arrange(classpond,desc(-meanpond))
+ newclass2%>%
+  head(3)
+
+```
+
+## Classifica per zona
+
+### Podio Spagna
+
+#### Best
+```{r}
+
+classSp<-
+  mutate(hotelSpagna, meanpond=((Average_Score*Total_Number_of_Reviews)/516000))
+
+  newclasssp<- arrange(classSp,-meanpond)
+  
+  podio<-newclasssp%>%head(3)
+  podio
+  
+  po<-data.frame(podio$Hotel_Name,podio$meanpond)
+  cc<-c("red", "yellow", "black")
+  ggplot(po, aes(x=podio$Hotel_Name, y=podio$meanpond)) + 
+  geom_bar(stat = "identity", width=0.5, fill=cc, main="S") +
+    xlab("Hotel Name")+
+    ylab("Average Score")+
+    coord_flip()+
+    theme(legend.position="none")
+
+```
+#### Worst
+```{r}
+ newclassp2<- arrange(classSp,desc(-meanpond))
+ newclassp2%>%
+  head(3)
+```
+
+### Podio Italia
+
+#### Best
+```{r}
+
+classIt<-
+  mutate(hotelItalia, meanpond=((Average_Score*Total_Number_of_Reviews)/516000))
+
+  newclassit<- arrange(classIt,-meanpond)
+
+ newclass%>%
+  head(3)
+```
+#### Worst
+```{r}
+ newclasit2<- arrange(classIt,desc(-meanpond))
+ newclasit2%>%
+  head(3)
+```
+
+## An eye on the reviewr's
+```{r}
+prov<-hreviews%>%select(Reviewer_Nationality)
+frequency_prov = prov %>% count(Reviewer_Nationality) %>% arrange(desc(n))
+
+fig <- frequency_prov %>% plot_ly(labels = ~Reviewer_Nationality, values = ~n)
+fig <- fig %>% add_pie(hole = 0.6)
+fig <- fig %>% layout(title = "Donut charts using Plotly",  showlegend = F,
+                      xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
+                      yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE))
+
+fig
+```
+ 
+## Spain Correlation 
+ 
+```{r}
+hotelSpagna2<-hreviews%>%
+  select(Hotel_Name,Reviewer_Nationality,Reviewer_Score,lat,lng
+)
+hotelSpagna3<-hotelSpagna2%>% 
+  filter((between(lat,41,41.5)))
+
+
+prova<- filter(hotelSpagna3,Hotel_Name=="Sansi Diputacio")
+ggplot(prova, aes(Reviewer_Score , Reviewer_Nationality)) + geom_point()
+
+# linear model 
+mod1 = lm(Reviewer_Score~Reviewer_Nationality, data = prova)
+
+
+ggplot(prova,aes(Reviewer_Score , Reviewer_Nationality)) + 
+  geom_point() + 
+  geom_abline(intercept = mod1$coefficients[1], 
+              slope = mod1$coefficients[2], 
+              color = "red")
+```
+
+### Italy Correlation
+```{r}
+hotelItalia2<-hreviews%>%
+  select(Hotel_Name,Reviewer_Nationality,Reviewer_Score,lat,lng
+)
+hotelItalia3<-hotelItalia2%>% 
+  filter((between(lat,45,46)))
+
+
+prova<- filter(hotelItalia3,Hotel_Name=="Hotel VIU Milan")
+ggplot(prova, aes(Reviewer_Score , Reviewer_Nationality)) + geom_point()
+
+# linear model 
+mod1 = lm(Reviewer_Score~Reviewer_Nationality, data = prova)
+
+ggplot(prova,aes(Reviewer_Score , Reviewer_Nationality)) + 
+  geom_point() + 
+  geom_abline(intercept = mod1$coefficients[1], 
+              slope = mod1$coefficients[2], 
+              color = "red")
+```
+
+
+## Second Correlation
+
+```{r}
+hotelSpagna2<-hreviews%>%
+  select(Hotel_Name,Review_Total_Positive_Word_Counts,Reviewer_Score,lat,lng)
+
+hotelSpagna3<-hotelSpagna2%>% 
+  filter((between(lat,41,41.5)))
+
+
+prova<- filter(hotelSpagna3,Hotel_Name=="Sansi Diputacio")
+ggplot(prova, aes( Review_Total_Positive_Word_Counts, Reviewer_Score)) + geom_point()
+
+# linear model 
+mod1 = lm(Review_Total_Positive_Word_Counts ~ Reviewer_Score, data = prova)
+
+
+ggplot(prova,aes(Review_Total_Positive_Word_Counts, Reviewer_Score)) + 
+  geom_point() + 
+  geom_abline(intercept = mod1$coefficients[1], 
+              slope = mod1$coefficients[2], 
+              color = "red")
+
+```
+## In general
+```{r}
+
+hreviewscorr<- hreviews%>% select(Reviewer_Score,Average_Score, Total_Number_of_Reviews, Review_Total_Positive_Word_Counts,Review_Total_Negative_Word_Counts)
+
+colnames(hreviewscorr)<- c("Punteggio","Media","NTotRev", "NParoleRp", "NParoleRn")
+
+corr <- round(cor(hreviewscorr), 1)
+
+corrplot(corr, method="shade")
+
+```
+
+## Text Analysis
+
+```{r}
+recensioni<- hreviews %>% select(Positive_Review, Review_Total_Positive_Word_Counts, Negative_Review, Review_Total_Negative_Word_Counts)
+```
+
+## First Text Analysis
+
+```{r}
+par(mfrow=c(1,2))
+boxplot(recensioni$Review_Total_Negative_Word_Counts, varwidth=TRUE,outwex=TRUE, main="Negative Review", outline=FALSE)
+boxplot(recensioni$Review_Total_Positive_Word_Counts, varwidth=TRUE, main="Positive Review", outline=FALSE)
+
+
+```
+
+## The numbers
+
+```{r}
+summary(recensioni$Review_Total_Positive_Word_Counts)
+summary(recensioni$Review_Total_Negative_Word_Counts)
+```
+
+## Analisi dettagliata 
+
+## Positive Reviews
+
+
+```{r}
+
+text_df <- tibble(line = 1:515738, text = recensioni$Positive_Review)
+rus_stopwords = data.frame(word = stopwords("ru"))
+
+
+new_df <- text_df %>% unnest_tokens(word, text)
+
+new_df1<-new_df %>%
+  filter(!(word %in% stopwords("english")))
+
+frequency_dataframe = new_df1 %>% count(word) %>% arrange(desc(n))
+
+short_dataframe = head(frequency_dataframe, 25)
+ggplot(short_dataframe, aes(x = word, y = n, fill = word),ylab="") +theme(axis.text.x = element_text(angle = 90))+ geom_col() +ylab("Count")
+```
+
+## Graphic Rappresentation
+
+```{r}
+wordcloud(words = frequency_dataframe$word, freq = frequency_dataframe$n, min.freq = 1,
+          max.words=200, random.order=FALSE, rot.per=0.35, 
+          colors=brewer.pal(8, "Dark2"))
+```
+
+## Negative Reviews
+```{r}
+text_df <- tibble(line = 1:515738, text = recensioni$Negative_Review)
+rus_stopwords = data.frame(word = stopwords("ru"))
+
+new_df <- text_df %>% unnest_tokens(word, text)
+
+new_df1<-new_df %>%
+  filter(!(word %in% stopwords("english")))
+
+frequencyn_dataframe = new_df1 %>% count(word) %>% arrange(desc(n))
+
+short_dataframe = head(frequencyn_dataframe, 25)
+ggplot(short_dataframe, aes(x = word, y = n, fill = word),ylab="") +theme(axis.text.x = element_text(angle = 90))+ geom_col() +ylab("Count")
+```
+
+## Graphic Rappresentation
+```{r}
+wordcloud(words = frequencyn_dataframe$word, freq = frequency_dataframe$n, min.freq = 1,
+          max.words=200, random.order=FALSE, rot.per=0.35, 
+          colors=brewer.pal(8, "Dark2"))
+```
+
