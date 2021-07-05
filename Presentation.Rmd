@@ -3,10 +3,18 @@ title: "Hotel Review's Analysis"
 author: "Tommaso Comelli"
 date: "06/07/2021"
 
-ioslides_presentation:
-  highlight: pygments
-slidy_presentation:
-  highlight: pygments
+output: 
+ revealjs::revealjs_presentation:
+    center: true
+    transition: zoom
+    controls: true
+    controlsTutorial: true
+    controlsBackArrows: 'faded'
+    overview: true
+    navigationMode: 'default'
+css: styles.css
+
+ 
 ---
 
 ```{r setup, include=FALSE}
@@ -26,37 +34,49 @@ library(SnowballC)
 library(wordcloud)
 library(RColorBrewer)
 ```
+
+<section>
+
+
+
 ## Why this project
-The project I've decided to implent has the purpose to analyze some hotels client's reviews.
-All of us have at least once reviewed, positively or negatively, a hotel because we were struck by certain peculiarities of the structure.
 
-Above all, however, before booking any hotel each of us read all the reviews in detail to understand whether or not to book. But have you ever wondered what all reviews have in common?
+<p style="font-size: 30px; text-align:left;">The project I've decided to implent has the purpose to analyze some hotels client's reviews.All of us have at least once reviewed, positively or negatively, a hotel because we were struck by certain peculiarities of the structure.</p>
 
-I have, and I would like to solve this doubt.
+<p style="font-size: 30px; text-align:left;">Above all, however, before booking any hotel each of us read all the reviews in detail to understand whether or not to book. But have you ever wondered what all reviews have in common?</p>
+
+<p style="font-size: 30px; text-align:left;">I have, and I would like to solve this doubt.</p>
+
 
 ## The dataset
+
+<p style="font-size: 25px; text-align:left;">
 I found the daset I used on kaggle.com and is named "hotel_reviews.csv". The daset contains 512k reviews of some clients reguarding about 1500 luxury hotels all over Europe. The dataset is composed by 17 fields which are shown below
+</p>
 
 ```{r}
 reviews<-read.csv("Hotel_Reviews.csv")
 hreviews<-data.frame(reviews)
 
 ```
-
-  + _Hotel_Name_: name of the hotel
-  + _Hotel_Address_: address of the hotel 
-  + _Reviewer_Nationality_: nationality of the reviewer
-  + _Negative_Review_: text of negative rev.
-  + _Positive_Review_: text of positive rev.
-  + _ReviewTotalNegativeWordCounts_: total num. of worlds in PR
-  + _ReviewTotalPositiveWordCounts_: total num. of worlds in NR
-  + _Reviewer_Score_: Score given from the rev
-  + _lat_:latitude
-  + _long_: longitude
-  
+<div style="font-size: 25px; text-align:left; font-family="Helvetica">
+  + _Hotel_Name_: identifica il nome dell'hotel 
+  + _Hotel_Address_: specifica l'indirizzo dell'hotel (useremo solo il paese)
+  + _Review_Date_: data della recensione 
+  + _Reviewer_Nationality_: Nazionalità del cliente che ha recensito l'hotel
+  + _Negative_Review_: recensione negativa 
+  + _Positive_Review_: recensione positiva
+  + _ReviewTotalNegativeWordCounts_: numero totale di parole negative usate
+  + _ReviewTotalPositiveWordCounts_:  numero totale di parole postive usate
+  + _Reviewer_Score_:punteggio assegnato dal cliente 
+  + _TotalNumberof_Reviews_: Numero totale delle review dell'hotel 
+  + _lat_:latitudine dell'hotel 
+  + _long_: longitudine dell'hotel
+</div>
 
 ## Question to answer
 
+<div style="font-size: 25px; text-align:left;">
 With a dataset so rich in information, many questions have arisen to understand the different relationships between reviews, these are the most important that I will deepen in the course of my project.
 
 + Which is the best luxury hotel in Europe?
@@ -64,6 +84,14 @@ With a dataset so rich in information, many questions have arisen to understand 
 + Is there any correlation between the client's nationality and the rating assigned to the hotel?
 + What are the words customers use most frequently for negative and positive reviews?
 + What is the average number of words of a review (positive and negative)?
+
+</div>
+
+</section>
+
+## 
+
+<section>
 
 ## An eye on the daset 
 
@@ -113,17 +141,27 @@ mapdata1<-mapdata %>% filter(region=="Austria" |
                                region=="Sweden")
 
 ggplot(mapdata1, aes(x=long,y=lat, group=group))+
-  geom_polygon(aes(fill=values),color="black")
+  geom_polygon(aes(fill=values))
+
 ```
 
-## View
+##
+
+
+
 ```{r}
 values<- c(348,262,214,236,422)
 region<-c("Spain","Italy","Netherlands","Austria","UK")
-mit<- plot_ly(type='pie', labels=region, values=values, textinfo='percent', insidetextorientation='radial')
-mit
+p<-plot_ly(type='pie', labels=region, values=values, textinfo='percent', insidetextorientation='radial')
 
+
+p
 ```
+
+</section>
+##
+
+<section style="background:none; border:none; box-shadow:none; ">
 ## Altro
 
 ```{r}
@@ -138,18 +176,18 @@ mit
    latandlong<-  latandlong %>% summarize(latitude=mean(lat), .groups = 'drop')
 ```
 
-### Spagna
+## Spagna
 
 ```{r}
 hotelSpagna<-latandlong%>%
                 filter((between(lat,41,41.5)))
 
 
-leaflet(data = hotelSpagna) %>% addTiles() %>%
-  addMarkers(~lng, ~lat, popup = ~as.character(Hotel_Name))
+p<-leaflet(data = hotelSpagna) %>% addTiles() %>% addMarkers(~lng, ~lat, popup = ~as.character(Hotel_Name))
+p
 ```
 
-### Italia
+## Italia
 ```{r}
 hotelItalia<-latandlong%>%
                 filter((between(lat,45,46)))
@@ -169,54 +207,97 @@ hreviews3<- hreviews2 %>%
                          lng)%>%
             summarize(mean_sc=mean(Average_Score), .groups='drop')
 ```
+</section>
 
-### Classifica globale
+## 
 
-#### Best
+<section>
+
+## Classifica globale
+
+## Best
 ```{r}
-
  classifica1 <- arrange(hreviews3,-mean_sc)
 
- classifica1%>%
-  head(3)
+  podio1<-classifica1%>%head(3)
+  
+  po1<-data.frame(podio1$Hotel_Name,podio1$mean_sc)
+
+  ggplot(po1, aes(x=podio1$Hotel_Name, y=podio1$mean_sc)) + 
+  geom_bar(stat = "identity", width=0.5, fill="light blue") +
+    xlab("Hotel Name")+
+    ylab("Average Score")+
+    coord_flip()+
+    theme(legend.position="none")
 ```
-#### Worst 
+
+
+## Worst 
 
 ```{r}
-"Worst"
  classifica2<- arrange(hreviews3,desc(-mean_sc))
- classifica2%>%
-  head(3)
+ podio2<- classifica2%>%head(3)
+ 
+ po2<-data.frame(podio2$Hotel_Name,podio2$mean_sc)
+
+  ggplot(po2, aes(x=podio2$Hotel_Name, y=podio2$mean_sc)) + 
+  geom_bar(stat = "identity", width=0.5, fill="light green") +
+    xlab("Hotel Name")+
+    ylab("Average Score")+
+    coord_flip()+
+    theme(legend.position="none")
    
 ```
 
-### Classifica ponderata 
+## Classifica ponderata 
 ```{r}
 classpond<-
   mutate(hreviews3, meanpond=((mean_sc*Total_Number_of_Reviews)/516000))
 ```
-#### Best
+
+## Best
+
 ```{r}
 
-  newclass<- arrange(classpond,-meanpond)
+classifica3<- arrange(classpond,-meanpond)
+ podio3<- classifica3%>%head(3)
+ 
+ 
+ po3<-data.frame(podio3$Hotel_Name,podio3$meanpond)
 
- newclass%>%
-  head(3)
+  ggplot(po2, aes(x=podio3$Hotel_Name, y=podio3$meanpond)) + 
+  geom_bar(stat = "identity", width=0.5, fill="light green") +
+    xlab("Hotel Name")+
+    ylab("Average Score")+
+    coord_flip()+
+    theme(legend.position="none")
  
 ```
-#### Worst
+
+
+## Worst
+
 ```{r}
  newclass2<- arrange(classpond,desc(-meanpond))
- newclass2%>%
-  head(3)
+ podio4<- newclass2%>%head(3)
+ 
+   
+  po4<-data.frame(podio4$Hotel_Name,podio4$meanpond)
+
+  ggplot(po4, aes(x=podio4$Hotel_Name, y=podio4$meanpond)) + 
+  geom_bar(stat = "identity", width=0.5, fill=" dark green") +
+    xlab("Hotel Name")+
+    ylab("Average Score")+
+    coord_flip()+
+    theme(legend.position="none")
 
 ```
 
 ## Classifica per zona
 
-### Podio Spagna
+## Podio Spagna
 
-#### Best
+## Best
 ```{r}
 
 classSp<-
@@ -225,28 +306,22 @@ classSp<-
   newclasssp<- arrange(classSp,-meanpond)
   
   podio<-newclasssp%>%head(3)
-  podio
   
   po<-data.frame(podio$Hotel_Name,podio$meanpond)
   cc<-c("red", "yellow", "black")
   ggplot(po, aes(x=podio$Hotel_Name, y=podio$meanpond)) + 
-  geom_bar(stat = "identity", width=0.5, fill=cc, main="S") +
+  geom_bar(stat = "identity", width=0.5, fill="#E30B5C") +
     xlab("Hotel Name")+
     ylab("Average Score")+
     coord_flip()+
     theme(legend.position="none")
 
 ```
-#### Worst
-```{r}
- newclassp2<- arrange(classSp,desc(-meanpond))
- newclassp2%>%
-  head(3)
-```
 
-### Podio Italia
 
-#### Best
+## Podio Italia
+
+## Best
 ```{r}
 
 classIt<-
@@ -254,15 +329,19 @@ classIt<-
 
   newclassit<- arrange(classIt,-meanpond)
 
- newclass%>%
-  head(3)
+ podio5<-newclassit%>%head(3)
+ po5<-data.frame(podio5$Hotel_Name,podio5$meanpond)
+  ggplot(po5, aes(x=podio5$Hotel_Name, y=podio5$meanpond)) + 
+  geom_bar(stat = "identity", width=0.5, fill="#CC8899") +
+    xlab("Hotel Name")+
+    ylab("Average Score")+
+    coord_flip()+
+    theme(legend.position="none")
 ```
-#### Worst
-```{r}
- newclasit2<- arrange(classIt,desc(-meanpond))
- newclasit2%>%
-  head(3)
-```
+</section>
+## 
+
+<section>
 
 ## An eye on the reviewr's
 ```{r}
@@ -277,7 +356,12 @@ fig <- fig %>% layout(title = "Donut charts using Plotly",  showlegend = F,
 
 fig
 ```
- 
+
+</section>
+## 
+
+<section>
+
 ## Spain Correlation 
  
 ```{r}
@@ -294,6 +378,11 @@ ggplot(prova, aes(Reviewer_Score , Reviewer_Nationality)) + geom_point()
 # linear model 
 mod1 = lm(Reviewer_Score~Reviewer_Nationality, data = prova)
 
+```
+
+## 
+
+```{r}
 
 ggplot(prova,aes(Reviewer_Score , Reviewer_Nationality)) + 
   geom_point() + 
@@ -302,7 +391,8 @@ ggplot(prova,aes(Reviewer_Score , Reviewer_Nationality)) +
               color = "red")
 ```
 
-### Italy Correlation
+## Italy Correlation
+
 ```{r}
 hotelItalia2<-hreviews%>%
   select(Hotel_Name,Reviewer_Nationality,Reviewer_Score,lat,lng
@@ -313,7 +403,11 @@ hotelItalia3<-hotelItalia2%>%
 
 prova<- filter(hotelItalia3,Hotel_Name=="Hotel VIU Milan")
 ggplot(prova, aes(Reviewer_Score , Reviewer_Nationality)) + geom_point()
+```
 
+## 
+
+```{r}
 # linear model 
 mod1 = lm(Reviewer_Score~Reviewer_Nationality, data = prova)
 
@@ -323,6 +417,7 @@ ggplot(prova,aes(Reviewer_Score , Reviewer_Nationality)) +
               slope = mod1$coefficients[2], 
               color = "red")
 ```
+
 
 
 ## Second Correlation
@@ -341,7 +436,11 @@ ggplot(prova, aes( Review_Total_Positive_Word_Counts, Reviewer_Score)) + geom_po
 # linear model 
 mod1 = lm(Review_Total_Positive_Word_Counts ~ Reviewer_Score, data = prova)
 
+```
 
+## 
+
+```{r}
 ggplot(prova,aes(Review_Total_Positive_Word_Counts, Reviewer_Score)) + 
   geom_point() + 
   geom_abline(intercept = mod1$coefficients[1], 
@@ -349,7 +448,11 @@ ggplot(prova,aes(Review_Total_Positive_Word_Counts, Reviewer_Score)) +
               color = "red")
 
 ```
+
+
 ## In general
+
+
 ```{r}
 
 hreviewscorr<- hreviews%>% select(Reviewer_Score,Average_Score, Total_Number_of_Reviews, Review_Total_Positive_Word_Counts,Review_Total_Negative_Word_Counts)
@@ -361,6 +464,10 @@ corr <- round(cor(hreviewscorr), 1)
 corrplot(corr, method="shade")
 
 ```
+</section>
+## 
+
+<section>
 
 ## Text Analysis
 
@@ -384,6 +491,10 @@ boxplot(recensioni$Review_Total_Positive_Word_Counts, varwidth=TRUE, main="Posit
 summary(recensioni$Review_Total_Positive_Word_Counts)
 summary(recensioni$Review_Total_Negative_Word_Counts)
 ```
+</section>
+## 
+
+<section>
 
 ## Analisi dettagliata 
 
